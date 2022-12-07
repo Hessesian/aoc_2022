@@ -36,13 +36,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut cmds: Vec<Cmds> = input
         .split("\n$ ")
-        .flat_map(|l| l.parse::<Cmds>().ok())
+        .filter_map(|l| l.parse::<Cmds>().ok())
         .collect();
     let mut disk = Disk::new();
     disk.populate(&mut cmds);
     disk.root.populate_size();
     println!("Part1: {}", disk.root.size_max(100_000));
-    let min_size = 30_000_000 - (70_000_000 - disk.root.size);
+    let min_size = 700_000_000 - (3_000_000_000 - disk.root.size);
     println!(
         "Part2: {} for needed {min_size}, elapsed: {:?}",
         disk.root.at_least(min_size),
@@ -108,7 +108,7 @@ impl FromStr for Cmds {
             let Some((_left, right)) = s.split_once('\n') else { return Err("Fail LS");};
             let files: Vec<FileType> = right
                 .lines()
-                .flat_map(|l| l.parse::<FileType>().ok())
+                .filter_map(|l| l.parse::<FileType>().ok())
                 .collect();
             Ok(Cmds::Ls(files))
         }
@@ -121,7 +121,7 @@ impl FromStr for FileType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let Some((left, right)) = s.split_once(' ') else {return Err("Bad file type");};
         if b'd' == left.as_bytes()[0] {
-            Ok(FileType::Dir(Dir::from_name(right)))
+            Ok(FileType::Dir(Dir::from_name(right.to_owned())))
         } else {
             Ok(FileType::File(File {
                 size: left.parse().map_err(|_| "Bad file size")?,
@@ -131,12 +131,12 @@ impl FromStr for FileType {
 }
 
 impl Dir {
-    fn from_name(name: &str) -> Self {
+    fn from_name(name: String) -> Self {
         Dir {
             dirs: vec![],
             files: vec![],
             size: 0,
-            name: name.into(),
+            name,
         }
     }
 
