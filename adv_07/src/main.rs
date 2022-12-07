@@ -1,4 +1,4 @@
-use std::{error::Error, fs::read_to_string, str::FromStr};
+use std::{error::Error, fs::read_to_string, str::FromStr, time::Instant};
 
 #[derive(Debug)]
 struct Dir {
@@ -32,6 +32,7 @@ struct Disk {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = read_to_string("bigboy_patched.txt")?;
+    let start = Instant::now();
 
     let mut cmds: Vec<Cmds> = input
         .split("\n$ ")
@@ -43,8 +44,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Part1: {}", disk.root.size_max(100_000));
     let min_size = 30_000_000 - (70_000_000 - disk.root.size);
     println!(
-        "Part2: {} for needed {min_size}",
-        disk.root.at_least(min_size)
+        "Part2: {} for needed {min_size}, elapsed: {:?}",
+        disk.root.at_least(min_size),
+        Instant::now() - start
     );
     Ok(())
 }
@@ -77,7 +79,7 @@ impl Disk {
     fn get_dir(&mut self, path: &[&str]) -> &mut Dir {
         let mut current = &mut self.root;
 
-        for name in path.iter().rev() {
+        for name in path.iter() {
             current = current.dirs.iter_mut().find(|d| d.name == **name).unwrap();
         }
         current
