@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, error::Error, fs::read_to_string, str::FromStr};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Dir {
     name: String,
     files: Vec<File>,
@@ -8,38 +8,38 @@ struct Dir {
     size: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct File {
     name: String,
     size: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum FileType {
     File(File),
     Dir(Dir),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum Cmds {
     Cd(String),
     Ls(Vec<FileType>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Disk {
     root: Dir,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let input = read_to_string("input")?;
+    let input = read_to_string("bigboy_patched.txt")?;
 
-    let cmds: Vec<Cmds> = input
+    let mut cmds: Vec<Cmds> = input
         .split("\n$ ")
         .flat_map(|l| l.parse::<Cmds>().ok())
         .collect();
     let mut disk = Disk::new();
-    disk.populate(&cmds);
+    disk.populate(&mut cmds);
     disk.root.populate_size();
     println!("Part1: {}", disk.root.size_max(100_000));
     let min_size = 30_000_000 - (70_000_000 - disk.root.size);
@@ -51,24 +51,24 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 impl Disk {
-    fn populate(&mut self, cmds: &[Cmds]) {
+    fn populate(&mut self, cmds: &mut [Cmds]) {
         let mut current_path: VecDeque<String> = VecDeque::new();
-        for cmd in cmds.iter() {
+        for cmd in cmds.iter_mut() {
             match cmd {
-                Cmds::Cd(path) => {
+                Cmds::Cd(ref path) => {
                     if path == ".." {
                         current_path.pop_front();
                     } else {
-                        current_path.push_front(path.into());
+                        current_path.push_front(path.to_owned());
                     }
                 }
-                Cmds::Ls(files) => {
+                Cmds::Ls(ref mut files) => {
                     let slice = current_path.make_contiguous();
                     let dir = &mut self.get_dir(slice);
-                    for file in files {
+                    for file in files.drain(0..) {
                         match file {
-                            FileType::File(f) => dir.files.push(f.clone()),
-                            FileType::Dir(d) => dir.dirs.push(d.clone()),
+                            FileType::File(f) => dir.files.push(f),
+                            FileType::Dir(d) => dir.dirs.push(d),
                         }
                     }
                 }
@@ -182,12 +182,12 @@ impl File {}
 #[test]
 fn test_sample() {
     let input = read_to_string("sample").unwrap();
-    let cmds: Vec<Cmds> = input
+    let mut cmds: Vec<Cmds> = input
         .split("\n$ ")
         .flat_map(|l| l.parse::<Cmds>().ok())
         .collect();
     let mut disk = Disk::new();
-    disk.populate(&cmds);
+    disk.populate(&mut cmds);
     disk.root.populate_size();
     assert_eq!(95437, disk.root.size_max(100000));
     assert_eq!(disk.root.size, 48381165);
