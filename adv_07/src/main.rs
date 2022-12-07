@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, error::Error, fs::read_to_string, str::FromStr};
+use std::{error::Error, fs::read_to_string, str::FromStr};
 
 #[derive(Debug)]
 struct Dir {
@@ -10,7 +10,6 @@ struct Dir {
 
 #[derive(Debug)]
 struct File {
-    name: String,
     size: usize,
 }
 
@@ -52,19 +51,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 impl Disk {
     fn populate(&mut self, cmds: &mut [Cmds]) {
-        let mut current_path: VecDeque<String> = VecDeque::new();
+        let mut current_path: Vec<&str> = vec![];
         for cmd in cmds.iter_mut() {
             match cmd {
                 Cmds::Cd(ref path) => {
-                    if path == ".." {
-                        current_path.pop_front();
+                    if path.as_bytes()[0] == b'.' {
+                        current_path.pop();
                     } else {
-                        current_path.push_front(path.to_owned());
+                        current_path.push(path);
                     }
                 }
                 Cmds::Ls(ref mut files) => {
-                    let slice = current_path.make_contiguous();
-                    let dir = &mut self.get_dir(slice);
+                    let dir = &mut self.get_dir(&current_path);
                     for file in files.drain(0..) {
                         match file {
                             FileType::File(f) => dir.files.push(f),
@@ -76,7 +74,7 @@ impl Disk {
         }
     }
 
-    fn get_dir(&mut self, path: &[String]) -> &mut Dir {
+    fn get_dir(&mut self, path: &[&str]) -> &mut Dir {
         let mut current = &mut self.root;
 
         for name in path.iter().rev() {
@@ -101,7 +99,7 @@ impl FromStr for Cmds {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with("cd") {
+        if s.as_bytes()[0] == b'c' {
             let Some((_left, right)) = s.split_once(' ') else { return Err("Fail CD");};
             Ok(Cmds::Cd(right.into()))
         } else {
@@ -120,11 +118,10 @@ impl FromStr for FileType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let Some((left, right)) = s.split_once(' ') else {return Err("Bad file type");};
-        if let "dir" = left {
+        if b'd' == left.as_bytes()[0] {
             Ok(FileType::Dir(Dir::from_name(right)))
         } else {
             Ok(FileType::File(File {
-                name: right.into(),
                 size: left.parse().map_err(|_| "Bad file size")?,
             }))
         }
