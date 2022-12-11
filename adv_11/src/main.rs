@@ -28,8 +28,7 @@ fn solve(monkes: &mut [Monkey], rounds: usize, divisor: Option<usize>) -> usize 
     }
     let mut business: Vec<usize> = monkes.iter().map(|m| m.inspected).collect();
     business.sort();
-    let len = business.len();
-    business[len - 2] * business[len - 1]
+    business.iter().rev().take(2).product()
 }
 
 #[derive(Debug, Clone)]
